@@ -3,8 +3,8 @@
 package sconf
 
 import (
-	"github.com/datacratic/gortbkit/deps/gometrics"
-	"github.com/datacratic/gortbkit/deps/goreports"
+	"github.com/datacratic/gometrics"
+	"github.com/datacratic/goreports"
 )
 
 // DefaultComponentMonitor defines a default metric monitor that outputs to stdout.

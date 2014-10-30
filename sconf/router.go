@@ -3,7 +3,7 @@
 package sconf
 
 import (
-	"github.com/datacratic/gortbkit/deps/goreports"
+	"github.com/datacratic/goreports"
 
 	"encoding/json"
 	"log"

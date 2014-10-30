@@ -3,7 +3,7 @@
 package sconf
 
 import (
-	"github.com/datacratic/gortbkit/deps/gorest/rest"
+	"github.com/datacratic/gorest/rest"
 
 	"testing"
 	"time"

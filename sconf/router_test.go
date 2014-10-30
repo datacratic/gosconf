@@ -3,7 +3,7 @@
 package sconf
 
 import (
-	"github.com/datacratic/gortbkit/deps/goset"
+	"github.com/datacratic/goset"
 
 	"sync/atomic"
 	"testing"
