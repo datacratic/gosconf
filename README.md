@@ -1,16 +1,42 @@
 # gosconf #
 
-Distributed configuration system for golang. Usage examples are available in the
-following test suites:
+Distributed configuration system for golang.
 
-* [example_test.go](sconf/example_test.go): basic introduction to the sconf
-  data-model.
-* [example_router_test.go](sconf/example_router_test.go): demonstrates how the
-  sconf.Router class is used to manage sconf configuration objects.
-* [example_http_test.go](sconf/example_http_test.go): introduction to the HTTP
+
+## Installation ##
+
+You can download the code via the usual go utilities:
+
+```
+go get github.com/datacratic/gosconf/sconf
+```
+
+
+## Build ##
+
+To build the code and run the test suite along with several static analysis tools,
+use the provided Makefile:
+
+```
+make test
+```
+
+Note that the usual go utilities will work just fine but we require that all
+commits pass the full suite of tests and static analysis tools.
+
+
+## Examples ##
+
+Examples are available in the following test suites:
+
+* [**Data-Model**](sconf/example_test.go): introduction to the sconf data-model.
+* [**Router**](sconf/example_router_test.go): introduction to the sconf.Router
+  class which is used to manage sconf configuration objects.
+* [**HTTP**](sconf/example_http_test.go): introduction to the HTTP
   components used to link multiple sconf-aware processes.
 
-## Why another configuration library ##
+
+## Why Another Configuration Library? ##
 
 sconf was built for the version of RTBkit where one of the key aspects of RTBkit
 plugins is that they should be highly dynamic. The main use case behind this is
@@ -38,3 +64,7 @@ proxy which is sensitive on timing.
 In the end, the only advantage we could find for using a system like etcd or
 Zookeeper would be the notification mechanism they provide which we can get from
 queueing systems like NSQ or Kafka.
+
+## License ##
+
+The source code is available under the Apache License. See the LICENSE file for more details.
