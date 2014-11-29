@@ -7,7 +7,7 @@
 package sconf_test
 
 import (
-	"github.com/datacratic/gorest/rest"
+	"github.com/datacratic/gorest/rest/resttest"
 	"github.com/datacratic/gosconf/sconf"
 
 	"time"
@@ -25,20 +25,18 @@ func Example_HTTP() {
 	routerA := new(sconf.Router)
 	defer routerA.Close()
 
-	endpointA := new(rest.TestEndpoint)
-	endpointA.AddRoutable(&sconf.HTTPEndpoint{Router: routerA})
-	endpointA.ListenAndServe()
+	endpointA := resttest.NewService(&sconf.HTTPEndpoint{Router: routerA})
+	defer endpointA.Close()
 
 	routerB := new(sconf.Router)
 	defer routerB.Close()
 
-	endpointB := new(rest.TestEndpoint)
-	endpointB.AddRoutable(&sconf.HTTPEndpoint{Router: routerB})
-	endpointB.ListenAndServe()
+	endpointB := resttest.NewService(&sconf.HTTPEndpoint{Router: routerB})
+	defer endpointB.Close()
 
 	// Here we create an sconf.HTTPClient which is used as a proxy to an
 	// sconf.HTTPEndpoint.
-	client := &sconf.HTTPClient{URL: endpointB.URL() + sconf.DefaultHTTPEndpointPath}
+	client := &sconf.HTTPClient{URL: endpointB.URL + sconf.DefaultHTTPEndpointPath}
 
 	// Since sconf.HTTPClient implements the sconf.Handler interface we can use
 	// it as a notification handler in our router such that all configuration
@@ -62,7 +60,7 @@ func Example_HTTP() {
 	// Pollers can operate in two modes: push or pull. That is that a poller can
 	// periodically push its state into the remote client or pull the remote
 	// state. This is done periodically.
-	pull := &sconf.Poller{Pull: true, Local: routerB, URL: endpointA.URL() + sconf.DefaultHTTPEndpointPath}
+	pull := &sconf.Poller{Pull: true, Local: routerB, URL: endpointA.URL + sconf.DefaultHTTPEndpointPath}
 	pull.Start()
 	defer pull.Stop()
 

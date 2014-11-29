@@ -3,24 +3,18 @@
 package sconf
 
 import (
-	"github.com/datacratic/gorest/rest"
+	"github.com/datacratic/gorest/rest/resttest"
 
 	"testing"
 	"time"
 )
 
-func (t TestRouterUtils) Endpoint(router *Router) *rest.TestEndpoint {
-	endpoint := &rest.TestEndpoint{
-		Endpoint: rest.Endpoint{Root: "/v1/configs/"},
-	}
-
-	endpoint.AddRoutable(&HTTPEndpoint{
+func (t TestRouterUtils) Endpoint(router *Router) *resttest.Server {
+	return resttest.NewRootedService("/v1/configs/", &HTTPEndpoint{
 		Component:  Component{Name: "config-endpoint"},
 		Router:     router,
 		PathPrefix: "/",
 	})
-	endpoint.ListenAndServe()
-	return endpoint
 }
 
 func TestConfigNotificationHTTP(t *testing.T) {
@@ -29,6 +23,7 @@ func TestConfigNotificationHTTP(t *testing.T) {
 	outHandler := test.NewHandler()
 	outRouter := test.NewRouter(outHandler)
 	endpoint := test.Endpoint(outRouter)
+	defer endpoint.Close()
 
 	inHandler, _ := NewClient(endpoint.RootedURL())
 	inRouter := test.NewRouter(inHandler)
@@ -41,6 +36,7 @@ func TestConfigSyncPullHTTP(t *testing.T) {
 
 	inRouter := test.NewRouter()
 	endpoint := test.Endpoint(inRouter)
+	defer endpoint.Close()
 
 	handler := test.NewHandler()
 	outRouter := test.NewRouter(handler)
@@ -62,6 +58,7 @@ func TestConfigSyncPushHTTP(t *testing.T) {
 	handler := test.NewHandler()
 	outRouter := test.NewRouter(handler)
 	endpoint := test.Endpoint(outRouter)
+	defer endpoint.Close()
 
 	inRouter := test.NewRouter()
 	poller := Poller{

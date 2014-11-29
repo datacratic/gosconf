@@ -79,10 +79,10 @@ func (endpoint *HTTPEndpoint) RESTRoutes() rest.Routes {
 	}
 
 	return rest.Routes{
-		rest.NewRoute("GET", path, endpoint.PullConfigs),
-		rest.NewRoute("PUT", path, endpoint.PushConfigs),
-		rest.NewRoute("POST", path, endpoint.NewConfig),
-		rest.NewRoute("DELETE", path, endpoint.DeadConfig),
+		rest.NewRoute(path, "GET", endpoint.PullConfigs),
+		rest.NewRoute(path, "PUT", endpoint.PushConfigs),
+		rest.NewRoute(path, "POST", endpoint.NewConfig),
+		rest.NewRoute(path, "DELETE", endpoint.DeadConfig),
 	}
 }
 
