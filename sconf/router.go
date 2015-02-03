@@ -3,6 +3,7 @@
 package sconf
 
 import (
+	"github.com/datacratic/goblueprint/blueprint"
 	"github.com/datacratic/goreports"
 
 	"encoding/json"
@@ -554,4 +555,8 @@ func (state *routerState) PushConfigs(configs *Configs) (err error) {
 	}
 
 	return combineErrors(errors...)
+}
+
+func init() {
+	blueprint.Register(Router{})
 }
