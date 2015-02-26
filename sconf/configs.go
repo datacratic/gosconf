@@ -15,12 +15,23 @@ type ConfigResult struct {
 
 	// Config is non-nil if the config is active. At most Config or
 	// Tombstone will be set.
-	Config *Config `json:"live"`
+	Config *Config `json:"live,omitempty"`
 
 	// Tombstone is non-nil if the config was killed. At most Config or
 	// tombstone will be set.
-	Tombstone *Tombstone `json:"dead"`
+	Tombstone *Tombstone `json:"dead,omitempty"`
 }
+
+// TypeConfigList contains the ID to version mapping of all configs and
+// tombstones for a given type.
+type TypeConfigList struct {
+	Configs    map[string]uint64 `json:"live,omitempty"`
+	Tombstones map[string]uint64 `json:"dead,omitempty"`
+}
+
+// ConfigList contains the ID to version mapping of all configs and tombstones
+// grouped by typed.
+type ConfigList map[string]*TypeConfigList
 
 // Configs maintains a set of configs and tombstones indexed by types. All
 // configs and tombstones held by this container are assumed to be immutable.
@@ -68,6 +79,19 @@ func (configs *Configs) Len() (size int) {
 	}
 
 	return
+}
+
+// List returns the ID to version mapping of all configs and tombstones.
+func (configs *Configs) List() ConfigList {
+	result := make(ConfigList)
+
+	for typ, state := range configs.Types {
+		if state.Len() > 0 {
+			result[typ] = state.List()
+		}
+	}
+
+	return result
 }
 
 // Get returns the config or tombstone associated with the given type and ID and
@@ -210,6 +234,27 @@ func (configs *TypeConfigs) Len() (size int) {
 	}
 
 	return
+}
+
+// List returns an ID to version mapping of the configs.
+func (configs *TypeConfigs) List() *TypeConfigList {
+	result := &TypeConfigList{}
+
+	if len(configs.Configs) > 0 {
+		result.Configs = make(map[string]uint64)
+		for ID, config := range configs.Configs {
+			result.Configs[ID] = config.Version
+		}
+	}
+
+	if len(configs.Tombstones) > 0 {
+		result.Tombstones = make(map[string]uint64)
+		for ID, config := range configs.Tombstones {
+			result.Tombstones[ID] = config.Version
+		}
+	}
+
+	return result
 }
 
 // Get returns the config or tombstone associated with the given ID and a bool

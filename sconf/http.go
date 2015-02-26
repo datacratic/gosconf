@@ -3,8 +3,10 @@
 package sconf
 
 import (
+	"github.com/datacratic/goblueprint/blueprint"
 	"github.com/datacratic/gorest/rest"
 
+	"fmt"
 	"log"
 	"net/http"
 	"net/url"
@@ -39,6 +41,20 @@ type HTTPEndpointMetrics struct {
 	// DeadConfigLatency mesures how long it took to process the DeadConfig
 	// event.
 	DeadConfigLatency time.Duration
+
+	// GetConfig indicates a request for a given config was received.
+	GetConfig bool
+
+	// GetConfigLatency mesures how long it took to get a single config.
+	GetConfigLatency time.Duration
+
+	// ListConfigs indicates a request for the list of all configs and
+	// tombstones.
+	ListConfigs bool
+
+	// ListConfigsLatency mesures how long it took to list all the configs and
+	// tombstones.
+	ListConfigsLatency time.Duration
 
 	// PullConfigs indicates a request for the list of all configs and
 	// tombstones.
@@ -83,7 +99,42 @@ func (endpoint *HTTPEndpoint) RESTRoutes() rest.Routes {
 		rest.NewRoute(path, "PUT", endpoint.PushConfigs),
 		rest.NewRoute(path, "POST", endpoint.NewConfig),
 		rest.NewRoute(path, "DELETE", endpoint.DeadConfig),
+
+		rest.NewRoute(path+"/list", "GET", endpoint.ListConfigs),
+		rest.NewRoute(path+"/:type/:id", "GET", endpoint.GetConfig),
 	}
+}
+
+// GetConfig returns the config associated by the given ID and type managed by
+// this endpoint. Returns a 404 REST error if the config doesn't exist.
+func (endpoint *HTTPEndpoint) GetConfig(typ, ID string) (result ConfigResult, err error) {
+	t0 := time.Now()
+
+	var ok bool
+	result, ok = endpoint.Router.PullConfigs().Get(typ, ID)
+
+	if !ok {
+		err = fmt.Errorf("ID '%s' doesn't exist for type '%s'", ID, typ)
+		err = &rest.CodedError{Code: http.StatusNotFound, Sub: err}
+	}
+
+	endpoint.RecordMetrics(&HTTPEndpointMetrics{
+		Request: true, GetConfig: true, GetConfigLatency: time.Since(t0)})
+
+	return
+}
+
+// ListConfigs returns a mappiong of config IDs to config version managed by
+// this endpoint.
+func (endpoint *HTTPEndpoint) ListConfigs() ConfigList {
+	t0 := time.Now()
+
+	list := endpoint.Router.PullConfigs().List()
+
+	endpoint.RecordMetrics(&HTTPEndpointMetrics{
+		Request: true, ListConfigs: true, ListConfigsLatency: time.Since(t0)})
+
+	return list
 }
 
 // PullConfigs returns all the configs and tombstones managed by this endpoint.
@@ -251,4 +302,5 @@ func (client *HTTPClient) sendRequest(method string, input, output interface{}, 
 
 func init() {
 	RegisterClient("http", NewHTTPClient)
+	blueprint.Register(HTTPEndpoint{})
 }
