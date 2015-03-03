@@ -4,7 +4,7 @@ package sconf
 
 import (
 	"github.com/datacratic/goblueprint/blueprint"
-	"github.com/datacratic/goreports"
+	"github.com/datacratic/goklog/klog"
 
 	"encoding/json"
 	"log"
@@ -82,7 +82,7 @@ const DefaultRouterQueueSize = 1 << 8
 // event notifications are defered to the router's goroutine where all event
 // processing takes place.
 type Router struct {
-	Component
+	Name string
 
 	// Configs is used to initialize the list of configurations for this
 	// router. States will be updated to include these configs but no handlers
@@ -124,6 +124,10 @@ func (router *Router) Init() {
 }
 
 func (router *Router) init() {
+	if router.Name == "" {
+		router.Name = "configRouter"
+	}
+
 	state := newRouterState(router.Configs, router.Handlers)
 	if router.States != nil {
 		for key, obj := range router.States {
@@ -332,7 +336,7 @@ func (router *Router) processMore(state *routerState) {
 
 func (router *Router) error(err error, obj interface{}) {
 	if data, err := json.Marshal(obj); err == nil {
-		router.Error(err, report.Data{Name: "config", Blob: data})
+		klog.KPrintf(router.Name+".error", "%s -> %s", err.Error(), string(data))
 	} else {
 		log.Panic(err.Error())
 	}

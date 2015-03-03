@@ -5,6 +5,7 @@ package sconf
 import (
 	"github.com/datacratic/goblueprint/blueprint"
 	"github.com/datacratic/gorest/rest"
+	"github.com/datacratic/gometer/meter"
 
 	"fmt"
 	"log"
@@ -18,66 +19,17 @@ import (
 // HTTPEndpoint.
 var DefaultHTTPEndpointPath = "/v1/configs"
 
-// HTTPEndpointMetrics contains the result of a config event received by an
-// HTTPEndpoint.
-type HTTPEndpointMetrics struct {
-
-	// Request indicates that a new HTTP request was received.
-	Request bool
-
-	// RequestLatency mesures how long it took to process the HTTP request.
-	RequestLatency time.Duration
-
-	// NewConfig indicates that a new config was received.
-	NewConfig bool
-
-	// NewConfigLatency mesures how long it took the process the NewConfig
-	// event.
-	NewConfigLatency time.Duration
-
-	// DeadConfig indicates that a config tombstone was received.
-	DeadConfig bool
-
-	// DeadConfigLatency mesures how long it took to process the DeadConfig
-	// event.
-	DeadConfigLatency time.Duration
-
-	// GetConfig indicates a request for a given config was received.
-	GetConfig bool
-
-	// GetConfigLatency mesures how long it took to get a single config.
-	GetConfigLatency time.Duration
-
-	// ListConfigs indicates a request for the list of all configs and
-	// tombstones.
-	ListConfigs bool
-
-	// ListConfigsLatency mesures how long it took to list all the configs and
-	// tombstones.
-	ListConfigsLatency time.Duration
-
-	// PullConfigs indicates a request for the list of all configs and
-	// tombstones.
-	PullConfigs bool
-
-	// PullConfigsLatency mesures how long it took to list all the configs and
-	// tombstones.
-	PullConfigsLatency time.Duration
-
-	// PushConfigs indicates that the endpoint received a list of configs to
-	// merge.
-	PushConfigs bool
-
-	// PushConfigs mesures how long it took to merge an incoming list of configs
-	// and tombstones.
-	PushConfigsLatency time.Duration
+type httpMetrics struct {
+	Requests *meter.Counter
+	Errors   *meter.Counter
+	Latency  *meter.Histogram
 }
 
 // HTTPEndpoint is an HTTP endpoint used to process various config related
 // events. The endpoint uses a Router to access the list of existing
 // configs and to push new configs or tombstones.
 type HTTPEndpoint struct {
-	Component
+	Name string
 
 	// PathPrefix is the HTTP path used to reach this endpoint. Defaults to
 	// DefaultHTTPEndpointPath.
@@ -85,6 +37,17 @@ type HTTPEndpoint struct {
 
 	// Router will be used to process config events received by this endpoint.
 	Router *Router
+
+	initialize sync.Once
+
+	metrics struct {
+		GetConfig   httpMetrics
+		ListConfigs httpMetrics
+		PullConfigs httpMetrics
+		PushConfigs httpMetrics
+		NewConfig   httpMetrics
+		DeadConfig  httpMetrics
+	}
 }
 
 // RESTRoutes returns the REST routes for the config endpoint.
@@ -105,22 +68,34 @@ func (endpoint *HTTPEndpoint) RESTRoutes() rest.Routes {
 	}
 }
 
+func (endpoint *HTTPEndpoint) Init() {
+	endpoint.initialize.Do(endpoint.init)
+}
+
+func (endpoint *HTTPEndpoint) init() {
+	if endpoint.Name == "" {
+		endpoint.Name = "configEndpoint"
+	}
+
+	meter.Load(&endpoint.metrics, endpoint.Name)
+}
+
 // GetConfig returns the config associated by the given ID and type managed by
 // this endpoint. Returns a 404 REST error if the config doesn't exist.
 func (endpoint *HTTPEndpoint) GetConfig(typ, ID string) (result ConfigResult, err error) {
 	t0 := time.Now()
+	endpoint.metrics.GetConfig.Requests.Hit()
 
 	var ok bool
 	result, ok = endpoint.Router.PullConfigs().Get(typ, ID)
 
 	if !ok {
+		endpoint.metrics.GetConfig.Errors.Hit()
 		err = fmt.Errorf("ID '%s' doesn't exist for type '%s'", ID, typ)
 		err = &rest.CodedError{Code: http.StatusNotFound, Sub: err}
 	}
 
-	endpoint.RecordMetrics(&HTTPEndpointMetrics{
-		Request: true, GetConfig: true, GetConfigLatency: time.Since(t0)})
-
+	endpoint.metrics.GetConfig.Latency.RecordSince(t0)
 	return
 }
 
@@ -128,55 +103,53 @@ func (endpoint *HTTPEndpoint) GetConfig(typ, ID string) (result ConfigResult, er
 // this endpoint.
 func (endpoint *HTTPEndpoint) ListConfigs() ConfigList {
 	t0 := time.Now()
+	endpoint.metrics.ListConfigs.Requests.Hit()
 
 	list := endpoint.Router.PullConfigs().List()
 
-	endpoint.RecordMetrics(&HTTPEndpointMetrics{
-		Request: true, ListConfigs: true, ListConfigsLatency: time.Since(t0)})
-
+	endpoint.metrics.ListConfigs.Latency.RecordSince(t0)
 	return list
 }
 
 // PullConfigs returns all the configs and tombstones managed by this endpoint.
 func (endpoint *HTTPEndpoint) PullConfigs() *Configs {
 	t0 := time.Now()
+	endpoint.metrics.PullConfigs.Requests.Hit()
 
 	configs := endpoint.Router.PullConfigs()
 
-	endpoint.RecordMetrics(&HTTPEndpointMetrics{
-		Request: true, PullConfigs: true, PullConfigsLatency: time.Since(t0)})
-
+	endpoint.metrics.PullConfigs.Latency.RecordSince(t0)
 	return configs
 }
 
 // PushConfigs merges the given configs with the configs managed by the endpoint.
 func (endpoint *HTTPEndpoint) PushConfigs(configs *Configs) {
 	t0 := time.Now()
+	endpoint.metrics.PushConfigs.Requests.Hit()
 
 	endpoint.Router.PushConfigs(configs)
 
-	endpoint.RecordMetrics(&HTTPEndpointMetrics{
-		Request: true, PushConfigs: true, PushConfigsLatency: time.Since(t0)})
+	endpoint.metrics.PushConfigs.Latency.RecordSince(t0)
 }
 
 // NewConfig adds the given config to the configs managed by this endpoint.
 func (endpoint *HTTPEndpoint) NewConfig(config *Config) {
 	t0 := time.Now()
+	endpoint.metrics.NewConfig.Requests.Hit()
 
 	endpoint.Router.NewConfig(config)
 
-	endpoint.RecordMetrics(&HTTPEndpointMetrics{
-		Request: true, NewConfig: true, NewConfigLatency: time.Since(t0)})
+	endpoint.metrics.NewConfig.Latency.RecordSince(t0)
 }
 
 // DeadConfig adds the given tombstone to the configs managed by this endpoint.
 func (endpoint *HTTPEndpoint) DeadConfig(tombstone *Tombstone) {
 	t0 := time.Now()
+	endpoint.metrics.DeadConfig.Requests.Hit()
 
 	endpoint.Router.DeadConfig(tombstone)
 
-	endpoint.RecordMetrics(&HTTPEndpointMetrics{
-		Request: true, DeadConfig: true, DeadConfigLatency: time.Since(t0)})
+	endpoint.metrics.DeadConfig.Latency.RecordSince(t0)
 }
 
 // HTTPClientMetrics contains the result of an HTTP config event sent by an
