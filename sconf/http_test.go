@@ -11,7 +11,7 @@ import (
 
 func (t TestRouterUtils) Endpoint(router *Router) *resttest.Server {
 	return resttest.NewRootedService("/v1/configs/", &HTTPEndpoint{
-		Component:  Component{Name: "config-endpoint"},
+		Name:       "config-endpoint",
 		Router:     router,
 		PathPrefix: "/",
 	})

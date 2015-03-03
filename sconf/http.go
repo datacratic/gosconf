@@ -4,8 +4,8 @@ package sconf
 
 import (
 	"github.com/datacratic/goblueprint/blueprint"
-	"github.com/datacratic/gorest/rest"
 	"github.com/datacratic/gometer/meter"
+	"github.com/datacratic/gorest/rest"
 
 	"fmt"
 	"log"
