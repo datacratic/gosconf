@@ -83,6 +83,8 @@ func (endpoint *HTTPEndpoint) init() {
 // GetConfig returns the config associated by the given ID and type managed by
 // this endpoint. Returns a 404 REST error if the config doesn't exist.
 func (endpoint *HTTPEndpoint) GetConfig(typ, ID string) (result ConfigResult, err error) {
+	endpoint.Init()
+
 	t0 := time.Now()
 	endpoint.metrics.GetConfig.Requests.Hit()
 
@@ -102,6 +104,8 @@ func (endpoint *HTTPEndpoint) GetConfig(typ, ID string) (result ConfigResult, er
 // ListConfigs returns a mappiong of config IDs to config version managed by
 // this endpoint.
 func (endpoint *HTTPEndpoint) ListConfigs() ConfigList {
+	endpoint.Init()
+
 	t0 := time.Now()
 	endpoint.metrics.ListConfigs.Requests.Hit()
 
@@ -113,6 +117,8 @@ func (endpoint *HTTPEndpoint) ListConfigs() ConfigList {
 
 // PullConfigs returns all the configs and tombstones managed by this endpoint.
 func (endpoint *HTTPEndpoint) PullConfigs() *Configs {
+	endpoint.Init()
+
 	t0 := time.Now()
 	endpoint.metrics.PullConfigs.Requests.Hit()
 
@@ -124,6 +130,8 @@ func (endpoint *HTTPEndpoint) PullConfigs() *Configs {
 
 // PushConfigs merges the given configs with the configs managed by the endpoint.
 func (endpoint *HTTPEndpoint) PushConfigs(configs *Configs) {
+	endpoint.Init()
+
 	t0 := time.Now()
 	endpoint.metrics.PushConfigs.Requests.Hit()
 
@@ -134,6 +142,8 @@ func (endpoint *HTTPEndpoint) PushConfigs(configs *Configs) {
 
 // NewConfig adds the given config to the configs managed by this endpoint.
 func (endpoint *HTTPEndpoint) NewConfig(config *Config) {
+	endpoint.Init()
+
 	t0 := time.Now()
 	endpoint.metrics.NewConfig.Requests.Hit()
 
@@ -144,6 +154,8 @@ func (endpoint *HTTPEndpoint) NewConfig(config *Config) {
 
 // DeadConfig adds the given tombstone to the configs managed by this endpoint.
 func (endpoint *HTTPEndpoint) DeadConfig(tombstone *Tombstone) {
+	endpoint.Init()
+
 	t0 := time.Now()
 	endpoint.metrics.DeadConfig.Requests.Hit()
 
